@@ -7,7 +7,7 @@ use objc2::runtime::{AnyObject, Bool, ProtocolObject};
 use objc2::{define_class, msg_send, AllocAnyThread, DefinedClass, MainThreadMarker, Message};
 use objc2_core_foundation::{CFRetained, CGPoint};
 use objc2_core_graphics::{
-    CGBitmapInfo, CGColorRenderingIntent, CGColorSpace, CGDataProvider,
+    kCGColorSpaceSRGB, CGBitmapInfo, CGColorRenderingIntent, CGColorSpace, CGDataProvider,
     CGDataProviderDirectCallbacks, CGImage, CGImageAlphaInfo, CGImageByteOrderInfo,
     CGImageComponentInfo, CGImagePixelFormatInfo,
 };
@@ -255,8 +255,11 @@ impl<D: HasDisplayHandle, W: HasWindowHandle> SurfaceInterface<D, W> for CGImpl<
         )));
 
         // The color space we're using. Initialize it here to reduce work later on.
+        // Tag the buffer as sRGB so it is colour-matched to the display; device RGB is shown
+        // unconverted in the display's native space, oversaturating colours on wide-gamut
+        // (Display P3) screens.
         // TODO: Allow setting this to something else?
-        let color_space = CGColorSpace::new_device_rgb().unwrap();
+        let color_space = CGColorSpace::with_name(Some(unsafe { kCGColorSpaceSRGB })).unwrap();
 
         // Grab initial width and height from the layer (whose properties have just been initialized
         // by the observer using `NSKeyValueObservingOptionInitial`).
